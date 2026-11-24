@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HERBALGLOW - ยาสระผมสมุนไพรธรรมชาติ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; border: 2px solid #000; padding: 20px; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-stone-50 text-stone-800 font-sans">
+
+  <!-- Navbar -->
+  <nav class="bg-emerald-800 text-white p-4 shadow-md sticky top-0 z-10 no-print">
+    <div class="max-w-5xl mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold tracking-wide">🌿 HERBALGLOW SHAMPOO</h1>
+      <div class="space-x-2">
+        <button onclick="switchTab('shop')" id="btn-shop" class="bg-white text-emerald-900 px-3 py-1.5 rounded font-semibold text-sm">หน้าร้านค้า (Landing Page)</button>
+        <button onclick="switchTab('warehouse')" id="btn-warehouse" class="bg-emerald-700 hover:bg-emerald-600 px-3 py-1.5 rounded font-semibold text-sm">📦 ระบบหยิบ & แพ็คพัสดุ</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- TAB 1: LANDING PAGE -->
+  <main id="tab-shop" class="max-w-5xl mx-auto p-6">
+    <!-- Hero -->
+    <div class="bg-emerald-100 rounded-2xl p-8 mb-8 text-center border border-emerald-200">
+      <span class="bg-emerald-700 text-white text-xs px-3 py-1 rounded-full uppercase">สูตรอ่อนโยน ไร้ซิลิโคน</span>
+      <h2 class="text-3xl font-extrabold text-emerald-950 mt-3">เปลี่ยนผมเสียให้กลับมาเงางาม มีน้ำหนัก</h2>
+      <p class="text-emerald-800 mt-2 max-w-xl mx-auto">คัดสรรสารสกัดสมุนไพรเข้มข้น 2 สูตรเฉพาะ ตอบโจทย์ปัญหาเส้นผมและหนังศีรษะอย่างตรงจุด</p>
+    </div>
+
+    <!-- Products (2 SKUs) -->
+    <h3 class="text-xl font-bold mb-4">เลือกสูตรสินค้า (2 SKUs)</h3>
+    <div class="grid md:grid-cols-2 gap-6 mb-8" id="product-list"></div>
+
+    <!-- Order Form -->
+    <div class="bg-white p-6 rounded-2xl shadow border border-stone-200">
+      <h3 class="text-xl font-bold mb-4 text-emerald-900">🛒 สรุปรายการสั่งซื้อและที่อยู่จัดส่ง</h3>
+      <div id="cart-summary" class="bg-stone-100 p-4 rounded-lg mb-4 text-sm">ยังไม่ได้เลือกสินค้า</div>
+
+      <form id="order-form" class="space-y-4">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">ชื่อ-นามสกุล ผู้รับ *</label>
+            <input type="text" id="cust-name" required placeholder="เช่น สมหญิง ใจดี" class="w-full border rounded-lg p-2.5" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">เบอร์โทรศัพท์ *</label>
+            <input type="tel" id="cust-phone" required placeholder="เช่น 0812345678" class="w-full border rounded-lg p-2.5" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">ที่อยู่จัดส่ง (บ้านเลขที่ / ตำบล / อำเภอ / จังหวัด / รหัสไปรษณีย์) *</label>
+          <textarea id="cust-address" required rows="2" placeholder="ระบุที่อยู่สำหรับพิมพ์ใบจ่าหน้าพัสดุ" class="w-full border rounded-lg p-2.5"></textarea>
+        </div>
+        <button type="submit" id="submit-btn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-xl transition">
+          ยืนยันการสั่งซื้อ (บันทึกลง Google Sheets)
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- TAB 2: WAREHOUSE / PICK & PACK -->
+  <section id="tab-warehouse" class="max-w-5xl mx-auto p-6 hidden">
+    <div class="flex justify-between items-center mb-6 no-print">
+      <div>
+        <h2 class="text-2xl font-bold text-stone-900">📦 ระบบหยิบสินค้า แพ็ค และออกใบจ่าหน้าพัสดุ</h2>
+        <p class="text-sm text-stone-500">ดึงข้อมูลออเดอร์ล่าสุดจาก Google Sheets อัตโนมัติ</p>
+      </div>
+      <button onclick="loadOrders()" class="bg-stone-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-stone-700">🔄 รีเฟรชข้อมูล</button>
+    </div>
+
+    <div id="orders-container" class="space-y-4 no-print">
+      <p class="text-center py-8 text-stone-500">กำลังโหลดข้อมูลจาก Google Sheets...</p>
+    </div>
+
+    <!-- Shipping Label Preview Modal -->
+    <div id="label-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">
+        <div id="print-area" class="border-2 border-black p-5 bg-white text-black">
+          <div class="flex justify-between border-b-2 border-black pb-2 mb-3">
+            <div>
+              <p class="font-bold text-lg">HERBALGLOW SHOP</p>
+              <p class="text-xs">ผู้ส่ง: คลังสินค้า HerbalGlow 99/1 ถ.พหลโยธิน กทม. 10900</p>
+              <p class="text-xs">โทร: 02-999-8888</p>
+            </div>
+            <div class="text-right">
+              <span class="border border-black px-2 py-0.5 text-xs font-bold">STANDARD EXPRESS</span>
+              <p id="lbl-orderid" class="font-mono font-bold text-sm mt-1"></p>
+            </div>
+          </div>
+          <div class="my-4">
+            <p class="text-xs uppercase font-bold text-gray-600">ผู้รับ (TO):</p>
+            <p id="lbl-name" class="text-lg font-bold"></p>
+            <p id="lbl-phone" class="text-sm font-semibold"></p>
+            <p id="lbl-address" class="text-sm mt-1 leading-relaxed"></p>
+          </div>
+          <div class="border-t border-dashed border-black pt-2 mt-3 text-xs">
+            <p class="font-bold">รายการสินค้าสำหรับหยิบ (Picking List):</p>
+            <p id="lbl-items" class="mt-1"></p>
+            <p id="lbl-total" class="font-bold mt-2 text-right"></p>
+          </div>
+        </div>
+
+        <div class="flex gap-2 mt-4 no-print">
+          <button onclick="window.print()" class="flex-1 bg-emerald-700 text-white py-2 rounded-lg font-bold">🖨️ พิมพ์ใบจ่าหน้าพัสดุ</button>
+          <button onclick="closeModal()" class="bg-stone-200 px-4 py-2 rounded-lg font-semibold">ปิด</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBlIxpdavpmFd3Jjf7s0BUG8cFPWQamnMv18mYdHPwMV35DpqTkeNMLQOeAp47sBa4EA/exec';
+
+    const PRODUCTS = [
+      {
+        sku: 'SKU-SHP-01',
+        name: 'แชมพูสูตรลดผมขาดหลุดร่วง (มะกรูด & ขิง)',
+        size: '300 ml',
+        price: 250,
+        image: './images/shampoo-01.jpg',
+        desc: 'บำรุงรากผมให้แข็งแรง ลดความมันบนหนังศีรษะ'
+      },
+      {
+        sku: 'SKU-SHP-02',
+        name: 'แชมพูสูตรฟื้นฟูผมแห้งเสีย (อัญชัน & น้ำมันมะพร้าว)',
+        size: '300 ml',
+        price: 290,
+        image: './images/shampoo-02.jpg',
+        desc: 'เติมความชุ่มชื้นให้ผมนุ่มลื่น เงางาม ไม่ชี้ฟู'
+      }
+    ];
+
+    let cart = { 'SKU-SHP-01': 0, 'SKU-SHP-02': 0 };
+
+    function renderProducts() {
+      const container = document.getElementById('product-list');
+      container.innerHTML = PRODUCTS.map(p => `
+        <div class="bg-white rounded-2xl shadow border border-stone-200 overflow-hidden flex flex-col">
+          <img src="${p.image}" alt="${p.name}" onerror="this.src='https://placehold.co/600x400?text=${p.sku}'" class="w-full h-56 object-cover bg-stone-100" />
+          <div class="p-5 flex-1 flex flex-col justify-between">
+            <div>
+              <span class="text-xs font-mono bg-stone-100 px-2 py-1 rounded text-stone-600">${p.sku} | ${p.size}</span>
+              <h4 class="font-bold text-lg mt-2">${p.name}</h4>
+              <p class="text-sm text-stone-500 mt-1">${p.desc}</p>
+            </div>
+            <div class="mt-4 pt-4 border-t flex items-center justify-between">
+              <span class="text-xl font-extrabold text-emerald-700">฿${p.price}</span>
+              <div class="flex items-center space-x-2">
+                <button type="button" onclick="updateQty('${p.sku}', -1)" class="w-8 h-8 rounded-full bg-stone-200 font-bold">-</button>
+                <span id="qty-${p.sku}" class="w-6 text-center font-bold">0</span>
+                <button type="button" onclick="updateQty('${p.sku}', 1)" class="w-8 h-8 rounded-full bg-emerald-700 text-white font-bold">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateQty(sku, delta) {
+      cart[sku] = Math.max(0, (cart[sku] || 0) + delta);
+      document.getElementById(`qty-${sku}`).innerText = cart[sku];
+      updateCartSummary();
+    }
+
+    function updateCartSummary() {
+      let lines = [];
+      let total = 0;
+      PRODUCTS.forEach(p => {
+        if (cart[p.sku] > 0) {
+          const sub = cart[p.sku] * p.price;
+          total += sub;
+          lines.push(`• [${p.sku}] ${p.name} x ${cart[p.sku]} ขวด = ฿${sub}`);
+        }
+      });
+      const el = document.getElementById('cart-summary');
+      el.innerHTML = lines.length
+        ? lines.join('<br>') + `<div class="font-bold text-base text-emerald-800 mt-2">ยอดรวมทั้งหมด: ฿${total}</div>`
+        : 'ยังไม่ได้เลือกสินค้า';
+    }
+
+    document.getElementById('order-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      let itemsList = [];
+      let totalPrice = 0;
+      PRODUCTS.forEach(p => {
+        if (cart[p.sku] > 0) {
+          itemsList.push(`${p.sku} (${p.name}) x${cart[p.sku]}`);
+          totalPrice += cart[p.sku] * p.price;
+        }
+      });
+
+      if (itemsList.length === 0) return alert('กรุณาเลือกสินค้าอย่างน้อย 1 ขวด');
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.innerText = 'กำลังบันทึกข้อมูลลง Google Sheets...';
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'create',
+            customerName: document.getElementById('cust-name').value,
+            phone: document.getElementById('cust-phone').value,
+            address: document.getElementById('cust-address').value,
+            items: itemsList.join(' | '),
+            totalPrice: totalPrice
+          })
+        });
+        const data = await res.json();
+        alert(`สั่งซื้อสำเร็จ! เลขที่ออเดอร์: ${data.orderId}`);
+        document.getElementById('order-form').reset();
+        cart = { 'SKU-SHP-01': 0, 'SKU-SHP-02': 0 };
+        renderProducts();
+        updateCartSummary();
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Google Sheets กรุณาตรวจสอบ URL');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'ยืนยันการสั่งซื้อ (บันทึกลง Google Sheets)';
+      }
+    });
+
+    function switchTab(tab) {
+      document.getElementById('tab-shop').classList.toggle('hidden', tab !== 'shop');
+      document.getElementById('tab-warehouse').classList.toggle('hidden', tab !== 'warehouse');
+      if (tab === 'warehouse') loadOrders();
+    }
+
+    async function loadOrders() {
+      const container = document.getElementById('orders-container');
+      container.innerHTML = '<p class="text-center py-8 text-stone-500">กำลังโหลดข้อมูลจาก Google Sheets...</p>';
+      try {
+        const res = await fetch(SCRIPT_URL);
+        const orders = await res.json();
+        if (!orders.length) {
+          container.innerHTML = '<p class="text-center py-8 text-stone-500">ยังไม่มีรายการสั่งซื้อ</p>';
+          return;
+        }
+        container.innerHTML = orders.reverse().map(o => `
+          <div class="bg-white p-5 rounded-xl shadow border border-stone-200 flex flex-col md:flex-row justify-between gap-4">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-emerald-800">${o.OrderID}</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold ${o.Status === 'แพ็คแล้ว' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${o.Status}</span>
+                <span class="text-xs text-stone-400">${o.Timestamp}</span>
+              </div>
+              <p class="font-bold text-stone-900">ผู้รับ: ${o.CustomerName} (${o.Phone})</p>
+              <p class="text-sm text-stone-600">ที่อยู่: ${o.Address}</p>
+              <div class="bg-stone-100 p-2 rounded text-sm font-medium text-stone-800 mt-2">
+                📋 <strong>รายการหยิบสินค้า:</strong> ${o.Items} <span class="text-emerald-700 font-bold">(฿${o.TotalPrice})</span>
+              </div>
+            </div>
+            <div class="flex flex-col justify-center gap-2 min-w-[200px]">
+              <button onclick='openLabel(${JSON.stringify(o)})' class="bg-stone-800 hover:bg-stone-900 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                🏷️ ออกใบจ่าหน้าพัสดุ
+              </button>
+              <button onclick="markPacked('${o.OrderID}')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-semibold">
+                ✅ ยืนยันหยิบ & แพ็คแล้ว
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = '<p class="text-center py-8 text-red-500">โหลดข้อมูลไม่สำเร็จ กรุณาตรวจสอบ SCRIPT_URL</p>';
+      }
+    }
+
+    async function markPacked(orderId) {
+      const tracking = 'TH' + Math.floor(100000000 + Math.random() * 900000000);
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'updateStatus', orderId, status: 'แพ็คแล้ว', trackingNo: tracking })
+      });
+      alert(`อัปเดตสถานะเป็น "แพ็คแล้ว" (Tracking: ${tracking})`);
+      loadOrders();
+    }
+
+    function openLabel(order) {
+      document.getElementById('lbl-orderid').innerText = order.OrderID;
+      document.getElementById('lbl-name').innerText = order.CustomerName;
+      document.getElementById('lbl-phone').innerText = 'โทร: ' + order.Phone;
+      document.getElementById('lbl-address').innerText = order.Address;
+      document.getElementById('lbl-items').innerText = order.Items;
+      document.getElementById('lbl-total').innerText = 'ยอดสุทธิ: ฿' + order.TotalPrice;
+      const modal = document.getElementById('label-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('label-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    renderProducts();
+  </script>
+</body>
+</html>
